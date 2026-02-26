@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header fade-in">
+    <h1>Physical Tracker</h1>
+    <p>Monitor your daily health metrics and nutrition intake</p>
+</div>
+
+{% if not user.height or not user.weight %}
+<div class="profile-prompt-banner fade-in" id="profilePrompt">
+    <div>
+        <div style="font-weight:600; font-size:0.9rem; margin-bottom:4px;">Profile Incomplete</div>
+        <div style="font-size:0.8rem; color:var(--text-muted);">Enter your height and weight to unlock personalised
+            nutrition and water targets.</div>
+    </div>
+    <button class="btn btn-sm" onclick="openProfileModal()">Complete Profile</button>
+</div>
+{% endif %}
+
+<!-- Profile Edit Modal -->
+<div id="profileModal" class="modal-overlay" style="display:none;">
+    <div class="modal-box fade-in">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+            <h3 style="font-size:1rem; font-weight:700;">Update Health Profile</h3>
+            <button onclick="closeProfileModal()"
+                style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.2rem;">✕</button>
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+            <div>
+                <label>Height (cm)</label>
+                <input type="number" id="heightInput" value="{{ user.height or '' }}" placeholder="e.g. 175"
+                    style="margin:0;">
+            </div>
+            <div>
+                <label>Weight (kg)</label>
+                <input type="number" id="weightInput" value="{{ user.weight or '' }}" placeholder="e.g. 70"
+                    style="margin:0;">
+            </div>
+            <div style="grid-column:span 2;">
+                <label>Blood Group</label>
+                <input type="text" id="bgInput" value="{{ user.blood_group or '' }}" placeholder="e.g. O+"
+                    style="margin:0;">
+            </div>
+        </div>
+        <button class="btn" style="width:100%; justify-content:center; margin-top:20px;" onclick="saveProfile()">Save &
+            Refresh Suggestions</button>
+    </div>
+</div>
+
+<!-- Main Physical Grid -->
+<div class="physical-grid-main fade-in">
+
+    <!-- Left Column -->
+    <div style="display:flex; flex-direction:column; gap:20px;">
+
+        <!-- Workout Schedule -->
+        <div class="card" style="padding:24px;">
+            <div class="section-title">
+                <span style="color:var(--primary-color);">⬡</span> Workout Schedule
+                <span
+                    style="margin-left:auto; font-size:0.72rem; color:var(--primary-color); font-weight:600; text-transform:none; letter-spacing:0;">Daily
+                    Routine</span>
+            </div>
+            <ul class="nutrition-list" id="workoutList">
+                {% for item in checklist if item.item_type == 'workout' %}
+                <li class="nutrition-item {{ 'checked' if item.is_checked else '' }}" data-id="{{ item.id }}"
+                    onclick="toggleNutrition({{ item.id }}, this)">
+                    <div class="nutri-check {{ 'checked' if item.is_checked else '' }}">
+                        {% if item.is_checked %}<svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                            <path d="M1.5 5l2.5 2.5 5-5" stroke="#000" stroke-width="1.8" stroke-linecap="round" />
+                        </svg>{% endif %}
+                    </div>
+                    <span class="nutri-text {{ 'done-text' if item.is_checked else '' }}">{{ item.item_label }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Health Stats Card -->
+        <div class="card" style="padding:24px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+                <div class="section-title" style="margin:0;">Health Profile</div>
+                <button class="btn btn-ghost btn-sm" onclick="openProfileModal()">✎ Edit</button>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(3, 1fr); gap:12px;">
+                <div class="health-stat-box">
+                    <div class="health-stat-val">{{ user.height or '—' }}</div>
+                    <div class="health-stat-lbl">Height (cm)</div>
+                </div>
+                <div class="health-stat-box">
+                    <div class="health-stat-val">{{ user.weight or '—' }}</div>
+                    <div class="health-stat-lbl">Weight (kg)</div>
+                </div>
+                <div class="health-stat-box">
+                    {% if user.bmi %}
+                    <div class="health-stat-val" id="bmiDisplay" style="
+                        color: {% if user.bmi < 18.5 %}var(--primary-color)
+                               {% elif user.bmi < 25 %}var(--success-color)
+                               {% elif user.bmi < 30 %}var(--warning-color)
+                               {% else %}#ef4444{% endif %};">{{ user.bmi }}</div>
+                    {% else %}
+                    <div class="health-stat-val" id="bmiDisplay" style="color:var(--text-muted);">—</div>
+                    {% endif %}
+                    <div class="health-stat-lbl">BMI Index</div>
+                </div>
+                <div class="health-stat-box">
+                    <div class="health-stat-val" style="color:var(--primary-color);">{{ '%.1f'|format(targets.water_l)
+                        if targets else '—' }}</div>
+                    <div class="health-stat-lbl">Water Target (L)</div>
+                </div>
+                <div class="health-stat-box">
+                    <div class="health-stat-val" style="color:var(--accent-color);">{{ targets.protein_g if targets else
+                        '—' }}g</div>
+                    <div class="health-stat-lbl">Protein / Day</div>
+                </div>
+                <div class="health-stat-box">
+                    <div class="health-stat-val" style="color:var(--success-color);">{{ targets.fiber_g if targets else
+                        '—' }}g</div>
+                    <div class="health-stat-lbl">Fiber / Day</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hydration Tracker -->
+        <div class="card" style="padding:24px;">
+            <div class="section-title">Hydration Tracker</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                <span style="font-size:0.82rem; color:var(--text-muted);">
+                    Daily target: <strong style="color:var(--primary-color);" id="waterTarget">{{
+                        '%.1f'|format(targets.water_l) if targets else '2.5' }}</strong> L
+                </span>
+                <span id="waterLevelText" style="font-size:1.4rem; font-weight:800; color:var(--primary-color);">{{
+                    '%.2f'|format(daily.water_intake_liters) if daily else '0.00' }} L</span>
+            </div>
+            <div class="water-bar-track">
+                <div id="waterBar"></div>
+            </div>
+            <div style="display:flex; gap:8px; margin-top:14px; flex-wrap:wrap;">
+                <button class="btn btn-outline btn-sm" onclick="addWater(0.25)">+ 250 ml</button>
+                <button class="btn btn-outline btn-sm" onclick="addWater(0.5)">+ 500 ml</button>
+                <button class="btn btn-outline btn-sm" onclick="addWater(1.0)">+ 1 L</button>
+                <button class="btn btn-ghost btn-sm" onclick="addWater(-0.25)">− 250 ml</button>
+            </div>
+        </div>
+
+        <!-- Food Log -->
+        <div class="card" style="padding:24px;">
+            <div class="section-title">Daily Food Log</div>
+            <textarea id="foodLog" rows="5"
+                placeholder="Log your meals here, e.g.&#10;· Breakfast: Oats, banana, protein shake&#10;· Lunch: Brown rice, chicken, salad&#10;· Dinner: Dal, roti, vegetables"
+                onblur="saveFood()">{{ daily.food_log or '' }}</textarea>
+            <div style="text-align:right; margin-top:6px;">
+                <small style="font-size:0.72rem; color:var(--text-muted);">Auto-saves on blur</small>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Right Column — Nutrition Checklist -->
+    <div style="display:flex; flex-direction:column; gap:20px;">
+
+        {% if targets %}
+
+        <!-- Protein Checklist -->
+        <div class="card" style="padding:22px;">
+            <div class="section-title">
+                <span style="color:var(--accent-color);">⬡</span> Protein Intake
+                <span
+                    style="margin-left:auto; font-size:0.72rem; color:var(--accent-color); font-weight:600; text-transform:none; letter-spacing:0;">{{
+                    targets.protein_g }}g / day</span>
+            </div>
+            <ul class="nutrition-list" id="proteinList">
+                {% for item in checklist if item.item_type == 'protein' %}
+                <li class="nutrition-item {{ 'checked' if item.is_checked else '' }}" data-id="{{ item.id }}"
+                    onclick="toggleNutrition({{ item.id }}, this)">
+                    <div class="nutri-check {{ 'checked' if item.is_checked else '' }}">
+                        {% if item.is_checked %}<svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                            <path d="M1.5 5l2.5 2.5 5-5" stroke="#000" stroke-width="1.8" stroke-linecap="round" />
+                        </svg>{% endif %}
+                    </div>
+                    <span class="nutri-text {{ 'done-text' if item.is_checked else '' }}">{{ item.item_label }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Fiber Checklist -->
+        <div class="card" style="padding:22px;">
+            <div class="section-title">
+                <span style="color:var(--success-color);">⬡</span> Fibre Intake
+                <span
+                    style="margin-left:auto; font-size:0.72rem; color:var(--success-color); font-weight:600; text-transform:none; letter-spacing:0;">{{
+                    targets.fiber_g }}g / day</span>
+            </div>
+            <ul class="nutrition-list" id="fiberList">
+                {% for item in checklist if item.item_type == 'fiber' %}
+                <li class="nutrition-item {{ 'checked' if item.is_checked else '' }}" data-id="{{ item.id }}"
+                    onclick="toggleNutrition({{ item.id }}, this)">
+                    <div class="nutri-check {{ 'checked' if item.is_checked else '' }}">
+                        {% if item.is_checked %}<svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                            <path d="M1.5 5l2.5 2.5 5-5" stroke="#000" stroke-width="1.8" stroke-linecap="round" />
+                        </svg>{% endif %}
+                    </div>
+                    <span class="nutri-text {{ 'done-text' if item.is_checked else '' }}">{{ item.item_label }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Water Schedule Checklist -->
+        <div class="card" style="padding:22px;">
+            <div class="section-title">
+                <span style="color:var(--primary-color);">⬡</span> Water Schedule
+                <span
+                    style="margin-left:auto; font-size:0.72rem; color:var(--primary-color); font-weight:600; text-transform:none; letter-spacing:0;">{{
+                    targets.water_l }}L / day</span>
+            </div>
+            <ul class="nutrition-list" id="waterList">
+                {% for item in checklist if item.item_type == 'water' %}
+                <li class="nutrition-item {{ 'checked' if item.is_checked else '' }}" data-id="{{ item.id }}"
+                    onclick="toggleNutrition({{ item.id }}, this)">
+                    <div class="nutri-check {{ 'checked' if item.is_checked else '' }}">
+                        {% if item.is_checked %}<svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                            <path d="M1.5 5l2.5 2.5 5-5" stroke="#000" stroke-width="1.8" stroke-linecap="round" />
+                        </svg>{% endif %}
+                    </div>
+                    <span class="nutri-text {{ 'done-text' if item.is_checked else '' }}">{{ item.item_label }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        {% else %}
+        <!-- Profile not set — prompt -->
+        <div class="card" style="padding:36px; text-align:center;">
+            <div style="font-size:2.5rem; margin-bottom:12px;">🧬</div>
+            <div style="font-weight:700; margin-bottom:8px;">Nutrition Insights Locked</div>
+            <div style="font-size:0.83rem; color:var(--text-muted); margin-bottom:20px; line-height:1.7;">
+                Complete your health profile to receive personalised protein, fibre, and water recommendations
+                calculated specifically for your body.
+            </div>
+            <button class="btn" onclick="openProfileModal()">Complete Profile →</button>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+<style>
+    .physical-grid-main {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 20px;
+    }
+
+    .health-stat-box {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: var(--radius-sm);
+        padding: 14px 12px;
+        text-align: center;
+    }
+
+    .health-stat-val {
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: var(--text-color);
+        line-height: 1;
+        margin-bottom: 5px;
+    }
+
+    .health-stat-lbl {
+        font-size: 0.68rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* Profile prompt banner */
+    .profile-prompt-banner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 20px;
+        background: rgba(0, 212, 255, 0.06);
+        border: 1px solid rgba(0, 212, 255, 0.2);
+        border-radius: var(--radius-md);
+        margin-bottom: 20px;
+        gap: 16px;
+    }
+
+    /* Modal */
+    .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.75);
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(4px);
+    }
+
+    .modal-box {
+        background: var(--bg-card);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: var(--radius-xl);
+        padding: 28px;
+        width: 90%;
+        max-width: 420px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+    }
+
+    /* Nutrition list */
+    .nutrition-list {
+        list-style: none;
+    }
+
+    .nutrition-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 9px 12px;
+        border-radius: var(--radius-sm);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        background: rgba(255, 255, 255, 0.015);
+        margin-bottom: 5px;
+        cursor: pointer;
+        transition: var(--transition);
+    }
+
+    .nutrition-item:hover {
+        background: rgba(255, 255, 255, 0.04);
+        border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .nutrition-item.checked {
+        background: rgba(16, 185, 129, 0.04);
+        border-color: rgba(16, 185, 129, 0.15);
+    }
+
+
+    .nutri-text {
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+        line-height: 1.5;
+    }
+
+    .nutri-text.done-text {
+        text-decoration: line-through;
+        color: var(--text-muted);
+    }
+</style>
+
+<script>
+    const currentWater = {{ '%.2f'| format(daily.water_intake_liters) if daily else 0 }};
+    const userHeight = {{ user.height or 0 }};
+    const userWeight = {{ user.weight or 0 }};
+
+    function openProfileModal() {
+        document.getElementById('profileModal').style.display = 'flex';
+    }
+    function closeProfileModal() {
+        document.getElementById('profileModal').style.display = 'none';
+    }
+    document.getElementById('profileModal').addEventListener('click', function (e) {
+        if (e.target === this) closeProfileModal();
+    });
+
+    async function saveProfile() {
+        const height = document.getElementById('heightInput').value;
+        const weight = document.getElementById('weightInput').value;
+        const bg = document.getElementById('bgInput').value;
+        if (!height || !weight) {
+            showToast('Please enter both height and weight.', 'error');
+            return;
+        }
+        const res = await fetch('/api/physical/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ personal_info: { height, weight, blood_group: bg } })
+        });
+        if (res.ok) {
+            showToast('Health profile updated. Reloading nutrition insights…', 'success');
+            setTimeout(() => location.reload(), 1200);
+        }
+    }
+
+    // Removed old task-loading scripts that are no longer needed
+    document.addEventListener('DOMContentLoaded', () => {
+        // Initialization if needed
+    });
+</script>
+{% endblock %}

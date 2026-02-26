@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NERI | Performance Tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=1.5">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="logo">NERI</div>
+
+            <div class="nav-section-label">Main</div>
+            <ul class="nav-links">
+                <li>
+                    <a href="{{ url_for('overview') }}"
+                        class="{{ 'active' if request.endpoint == 'overview' else '' }}">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="3" width="7" height="7" />
+                            <rect x="14" y="3" width="7" height="7" />
+                            <rect x="3" y="14" width="7" height="7" />
+                            <rect x="14" y="14" width="7" height="7" />
+                        </svg>
+                        Overview
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('physical') }}"
+                        class="{{ 'active' if request.endpoint == 'physical' else '' }}">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <path
+                                d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                        Physical
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('profession') }}"
+                        class="{{ 'active' if request.endpoint == 'profession' else '' }}">
+                        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
+                            <path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+                            <line x1="12" y1="12" x2="12" y2="12" />
+                            <line x1="8" y1="12" x2="16" y2="12" />
+                        </svg>
+                        Profession
+                    </a>
+                </li>
+            </ul>
+
+            <!-- User info at bottom -->
+            {% if current_user %}
+            <div class="sidebar-user">
+                <div style="display:flex; align-items:center; gap: 10px;">
+                    <div class="sidebar-avatar">{{ current_user['username'][0].upper() }}</div>
+                    <div>
+                        <div class="user-name">{{ current_user['username'] }}</div>
+                        <div class="user-role">Performance Tracker</div>
+                    </div>
+                </div>
+                <a href="{{ url_for('logout') }}"
+                    style="display:block; margin-top:12px; font-size:0.78rem; color:var(--text-muted); text-decoration:none; transition: color 0.2s;"
+                    onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--text-muted)'">
+                    ↪ Sign Out
+                </a>
+            </div>
+            {% endif %}
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            <div class="flash-messages">
+                {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}?v=1.5"></script>
+    <script>
+        // Convert server-side flash messages to toast notifications
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('.flash').forEach(el => {
+                const type = el.classList.contains('success') ? 'success'
+                    : el.classList.contains('error') ? 'error' : 'info';
+                if (typeof showToast === 'function') showToast(el.textContent.trim(), type);
+            });
+        });
+    </script>
+</body>
+
+</html>

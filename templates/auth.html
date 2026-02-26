@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NERI | Welcome</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #0B0F1A;
+            color: #F8FAFC;
+            font-family: 'Outfit', sans-serif;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .auth-master-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            background: #050505;
+            border-radius: 0;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* ── Sliding Panels ── */
+        .auth-panel {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            transition: all 0.6s cubic-bezier(0.68, -0.2, 0.265, 1.25);
+        }
+
+        /* The Purple Visual Side */
+        .auth-visual {
+            width: 50vw;
+            background: linear-gradient(135deg, #4c1d95 0%, #2e1065 100%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 60px 8%;
+            clip-path: polygon(0 0, 100% 0, 85% 100%, 0% 100%);
+        }
+
+        /* The Black Form Side */
+        .auth-form-side {
+            width: 50vw;
+            background: transparent;
+            z-index: 5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 8%;
+        }
+
+        /* State Positions - Default (Login) */
+        .auth-master-container.state-login .auth-visual {
+            right: 0;
+            clip-path: polygon(15% 0, 100% 0, 100% 100%, 0 100%);
+        }
+
+        .auth-master-container.state-login .auth-form-side {
+            left: 0;
+            opacity: 1;
+        }
+
+        /* State Positions - Active (Sign Up) */
+        .auth-master-container.state-signup .auth-visual {
+            right: 50vw;
+            /* Moves to the left side */
+            clip-path: polygon(0 0, 100% 0, 85% 100%, 0 100%);
+        }
+
+        .auth-master-container.state-signup .auth-form-side {
+            left: 50%;
+            /* Moves to the right side */
+            opacity: 1;
+        }
+
+        /* Hide the inactive form */
+        .form-content {
+            width: 100%;
+            max-width: 420px;
+            transition: opacity 0.4s ease, transform 0.4s ease;
+            position: absolute;
+        }
+
+        .state-login #signup-form,
+        .state-signup #login-form {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(20px);
+            z-index: 1;
+        }
+
+        .state-login #login-form,
+        .state-signup #signup-form {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
+            z-index: 10;
+        }
+
+
+        /* ── Typography & Elements ── */
+        .auth-title {
+            font-size: clamp(2rem, 3vw, 2.5rem);
+            font-weight: 800;
+            margin-bottom: 32px;
+            text-align: left;
+            letter-spacing: 0.5px;
+        }
+
+        .visual-title {
+            font-size: clamp(32px, 4vw, 48px);
+            font-weight: 800;
+            line-height: 1.2;
+            margin-bottom: 16px;
+            color: white;
+            letter-spacing: 1px;
+        }
+
+        .visual-desc {
+            font-size: 1rem;
+            color: rgba(255, 255, 255, 0.8);
+            line-height: 1.6;
+            max-width: 85%;
+        }
+
+        /* Content switcher for visual panel based on state */
+        .visual-content-inner {
+            transition: opacity 0.3s ease;
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: calc(100% - 120px);
+            /* accounting for padding */
+        }
+
+        .state-login #visual-signup,
+        .state-signup #visual-login {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .state-login #visual-login,
+        .state-signup #visual-signup {
+            opacity: 1;
+        }
+
+
+        /* Inputs matching screenshot */
+        .input-group {
+            position: relative;
+            margin-bottom: 24px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: #CBD5E1;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .input-group input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 1rem;
+            padding: 8px 30px 8px 0;
+            transition: all 0.3s;
+            box-shadow: none;
+            border-radius: 0;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-bottom-color: #9D4EDD;
+            background: transparent;
+            box-shadow: 0 4px 12px rgba(157, 78, 221, 0.1);
+        }
+
+        .input-icon {
+            position: absolute;
+            right: 0;
+            bottom: 12px;
+            color: white;
+            font-size: 0.9rem;
+        }
+
+        /* Form Row for Height/Weight */
+        .form-row {
+            display: flex;
+            gap: 16px;
+        }
+
+        .form-row .input-group {
+            flex: 1;
+        }
+
+
+        /* Auth Button */
+        .auth-btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 30px;
+            background: linear-gradient(90deg, #6d28d9, #9D4EDD, #00d4ff);
+            background-size: 200% auto;
+            border: none;
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.5s;
+            box-shadow: 0 0 20px rgba(157, 78, 221, 0.4);
+            margin-top: 10px;
+        }
+
+        .auth-btn:hover {
+            background-position: right center;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(157, 78, 221, 0.6);
+        }
+
+        .auth-btn:active {
+            transform: scale(0.96);
+        }
+
+        .auth-switch-link {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 0.85rem;
+            color: #94a3b8;
+        }
+
+        .auth-switch-link a {
+            color: #9D4EDD;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+
+        .auth-switch-link a:hover {
+            color: #00d4ff;
+        }
+
+        .auth-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.25);
+            color: #fca5a5;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* Mobile handling */
+        @media (max-width: 800px) {
+            .auth-master-container {
+                flex-direction: column;
+                height: 100vh;
+                border-radius: 0;
+                overflow-y: auto;
+            }
+
+            .auth-visual,
+            .auth-form-side {
+                width: 100vw;
+                position: relative;
+                left: 0 !important;
+                right: 0 !important;
+                clip-path: none !important;
+            }
+
+            .auth-visual {
+                flex: none;
+                height: auto;
+                min-height: 250px;
+                padding: 40px 20px;
+            }
+
+            .auth-form-side {
+                flex: 1;
+                height: auto;
+                padding: 40px 20px;
+                align-items: flex-start;
+            }
+
+            .visual-title {
+                font-size: 2rem;
+            }
+
+            .visual-content-inner {
+                position: relative;
+                top: 0;
+                transform: none;
+                width: 100%;
+                text-align: center;
+            }
+
+            .visual-desc {
+                max-width: 100%;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Initial state determined by template variable -->
+    <div class="auth-master-container {{ 'state-login' if mode == 'signin' else 'state-signup' }}" id="authContainer">
+
+        <!-- The Purple Visual Panel -->
+        <div class="auth-panel auth-visual">
+            <div class="visual-content-inner" id="visual-login">
+                <div class="visual-title">WELCOME<br>BACK!</div>
+                <div class="visual-desc">Log in to seamlessly resume tracking your performance metrics and achieve your
+                    daily goals efficiently.</div>
+            </div>
+            <div class="visual-content-inner" id="visual-signup">
+                <div class="visual-title">START YOUR<br>JOURNEY!</div>
+                <div class="visual-desc">Create an account today to
+                    discover insights, optimize routines, and break through your limits.</div>
+            </div>
+        </div>
+
+        <!-- The Black Form Panel -->
+        <div class="auth-panel auth-form-side">
+
+            <!-- Login Form -->
+            <div class="form-content" id="login-form">
+                <div class="auth-title">Login</div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages and mode == 'signin' %}
+                {% for category, message in messages %}
+                <div class="auth-error">{{ message }}</div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+
+                <form action="{{ url_for('login') }}" method="POST">
+                    <div class="input-group">
+                        <label>Username</label>
+                        <input type="text" name="username" required>
+                        <i class="fas fa-user input-icon"></i>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" name="password" required>
+                        <i class="fas fa-lock input-icon"></i>
+                    </div>
+
+                    <button type="submit" class="auth-btn">Login</button>
+                </form>
+
+                <div class="auth-switch-link">
+                    Don't have an account? <a onclick="toggleAuthMode('signup')">Sign Up</a>
+                </div>
+            </div>
+
+            <!-- Sign Up Form -->
+            <div class="form-content" id="signup-form">
+                <div class="auth-title">Sign Up</div>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages and mode == 'signup' %}
+                {% for category, message in messages %}
+                <div class="auth-error">{{ message }}</div>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+
+                <form action="{{ url_for('signup') }}" method="POST">
+                    <div class="input-group">
+                        <label>Username</label>
+                        <input type="text" name="username" required>
+                        <i class="fas fa-user input-icon"></i>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Password</label>
+                        <input type="password" name="password" required>
+                        <i class="fas fa-lock input-icon"></i>
+                    </div>
+
+                    <button type="submit" class="auth-btn">Sign Up</button>
+                </form>
+
+                <div class="auth-switch-link">
+                    Already have an account? <a onclick="toggleAuthMode('login')">Login</a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Use JS to swap classes for smooth sliding animation
+        function toggleAuthMode(targetMode) {
+            const container = document.getElementById('authContainer');
+            if (targetMode === 'signup') {
+                container.classList.remove('state-login');
+                container.classList.add('state-signup');
+                // Optional history push logic here if you want back buttons to work without reload
+                window.history.pushState(null, '', '/auth/signup');
+            } else {
+                container.classList.remove('state-signup');
+                container.classList.add('state-login');
+                window.history.pushState(null, '', '/auth/login');
+            }
+        }
+    </script>
+</body>
+
+</html>

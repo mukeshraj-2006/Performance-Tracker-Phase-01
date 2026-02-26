@@ -1,0 +1,1514 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div id="mainContainer" class="main-content-blur">
+    <!-- Greeting + Date -->
+    <div class="page-header fade-in" style="margin-bottom:20px;">
+        <div>
+            <h1>Good {% if now_hour < 12 %}Morning{% elif now_hour < 17 %}Afternoon{% else %}Evening{% endif %}, {{
+                    current_user.username }}!</h1>
+                    <p style="color:var(--text-muted); font-size:0.85rem;">{{ today }}</p>
+        </div>
+    </div>
+
+    <!-- Daily Quote Banner -->
+    <div class="quote-banner fade-in">
+        <div class="quote-icon">"</div>
+        <div class="quote-body">
+            <div class="quote-text">{{ quote.quote }}</div>
+            <div class="quote-author">— {{ quote.author }}</div>
+        </div>
+    </div>
+
+    <!-- Score Cards -->
+    <div class="score-cards-grid fade-in">
+
+        <!-- Physical -->
+        <div class="score-card">
+            <div class="sc-header">
+                <div class="sc-icon physical">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+                    </svg>
+                </div>
+                <div class="sc-label">Physical Activity</div>
+            </div>
+            <div class="sc-stats">
+                <div class="sc-stat-row">
+                    <span>Tasks Scheduled</span>
+                    <span class="sc-val">{{ tasks_total }}</span>
+                </div>
+                <div class="sc-stat-row">
+                    <span>Tasks Completed</span>
+                    <span class="sc-val success">{{ tasks_done }}</span>
+                </div>
+            </div>
+            <div class="sc-ring-wrap">
+                <svg class="score-ring-svg" width="90" height="90" viewBox="0 0 90 90">
+                    <circle class="ring-bg" cx="45" cy="45" r="36" />
+                    <circle class="ring-fill physical-ring" cx="45" cy="45" r="36"
+                        data-target-offset="{{ 226.2 - (226.2 * (physical_pct|default(0)) / 100) }}"
+                        transform="rotate(-90 45 45)" />
+                </svg>
+                <div class="ring-label">
+                    <span class="ring-pct success">{{ physical_pct }}%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profession -->
+        <div class="score-card">
+            <div class="sc-header">
+                <div class="sc-icon profession">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="3" width="20" height="14" rx="2" />
+                        <path d="M8 21h8M12 17v4" />
+                    </svg>
+                </div>
+                <div class="sc-label">Profession Tasks</div>
+            </div>
+            <div class="sc-stats">
+                <div class="sc-stat-row">
+                    <span>Tasks in Notebook</span>
+                    <span class="sc-val">{{ prof_total }}</span>
+                </div>
+                <div class="sc-stat-row">
+                    <span>Tasks Finished</span>
+                    <span class="sc-val cyan">{{ prof_done }}</span>
+                </div>
+            </div>
+            <div class="sc-ring-wrap">
+                <svg class="score-ring-svg" width="90" height="90" viewBox="0 0 90 90">
+                    <circle class="ring-bg" cx="45" cy="45" r="36" />
+                    <circle class="ring-fill profession-ring" cx="45" cy="45" r="36"
+                        data-target-offset="{{ 226.2 - (226.2 * (profession_pct|default(0)) / 100) }}"
+                        transform="rotate(-90 45 45)" />
+                </svg>
+                <div class="ring-label">
+                    <span class="ring-pct cyan">{{ profession_pct }}%</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Today's Combined Score -->
+        <div class="score-card combined-card">
+            <div class="sc-header">
+                <div class="sc-icon combined">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon
+                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+                    </svg>
+                </div>
+                <div class="sc-label">Today's Activity Score</div>
+            </div>
+            <div class="combined-score-display">
+                <div
+                    class="combined-big-pct {% if combined_score >= 75 %}success{% elif combined_score >= 40 %}cyan{% else %}amber{% endif %}">
+                    {{ combined_score }}%</div>
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px;">Average of all activities</div>
+            </div>
+            <div class="combined-breakdown">
+                <div class="breakdown-item">
+                    <div class="breakdown-dot physical"></div>
+                    <span>Physical</span>
+                    <span class="breakdown-val">{{ physical_pct }}%</span>
+                </div>
+                <div class="breakdown-item">
+                    <div class="breakdown-dot profession"></div>
+                    <span>Profession</span>
+                    <span class="breakdown-val">{{ profession_pct }}%</span>
+                </div>
+            </div>
+            <div class="combined-bar-track" style="margin-top:14px;">
+                <div class="combined-bar-fill" style="width: {{ combined_score }}%;"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Calendar Section -->
+    <div class="calendar-section fade-in">
+        <div class="card" style="padding:24px;">
+            <div
+                style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; flex-wrap:wrap; gap:12px;">
+                <div class="section-title" style="margin:0;">Activity Calendar</div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn btn-ghost btn-sm" onclick="prevMonth()">← Prev</button>
+                    <span id="monthYearDisplay"
+                        style="font-weight:600; min-width:120px; text-align:center; font-size:0.95rem;"></span>
+                    <button class="btn btn-ghost btn-sm" onclick="nextMonth()">Next →</button>
+                </div>
+            </div>
+            <div id="calendarGrid" class="calendar-grid-responsive"
+                style="display:grid; grid-template-columns:repeat(7, 1fr); gap:8px; margin-top:16px;">
+                <!-- Calendar will be generated here -->
+            </div>
+            <div id="selectedDateInfo"
+                style="margin-top:20px; padding:16px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:8px; display:none;">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+                    <strong id="selectedDateText" style="font-size:0.95rem;"></strong>
+                    <span id="dateStatus"
+                        style="font-size:0.75rem; padding:4px 10px; border-radius:6px; background:rgba(0,212,255,0.1); color:var(--primary-color);"></span>
+                </div>
+                <div id="dateStats"
+                    style="margin-bottom:12px; display:flex; gap:16px; font-size:0.9rem; flex-wrap:wrap;">
+                    <!-- Date stats will be shown here -->
+                </div>
+                <div id="dateActions" style="display:flex; gap:8px; margin-bottom:12px;">
+                    <!-- Action buttons based on date type -->
+                </div>
+                <div id="dateTasksList" style="font-size:0.85rem; max-height:300px; overflow-y:auto;">
+                    <!-- Tasks for selected date -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div><!-- end mainContainer -->
+
+<!-- Date View Modal for Past Dates (OUTSIDE mainContainer so blur doesn't affect it) -->
+<div id="dateViewModal" class="modal-overlay" style="display:none;">
+    <div
+        style="background:var(--bg-card); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-xl); padding:0; width:90%; max-width:900px; max-height:90vh; overflow-y:auto; box-shadow:0 20px 60px rgba(0,0,0,0.7); position:relative;">
+        <!-- Header -->
+        <div
+            style="position:sticky; top:0; display:flex; align-items:center; justify-content:space-between; padding:24px; border-bottom:1px solid rgba(255,255,255,0.06); background:var(--bg-card); z-index:10;">
+            <div>
+                <h2 style="margin:0; font-size:1.2rem; font-weight:700;" id="modalDateHeader"></h2>
+                <p style="margin:4px 0 0; font-size:0.85rem; color:var(--text-muted);" id="modalDateSubheader">
+                    View-only — Historical Record</p>
+            </div>
+            <button onclick="closeDateViewModal()"
+                style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.5rem; padding:0;">✕</button>
+        </div>
+
+        <!-- Content Tabs -->
+        <div style="display:flex; gap:0; border-bottom:1px solid rgba(255,255,255,0.06); padding:0 24px;">
+            <button id="tabOverview"
+                style="flex:1; padding:14px 16px; border:none; background:none; color:var(--primary-color); font-weight:600; border-bottom:2px solid var(--primary-color); cursor:pointer;"
+                onclick="switchDateViewTab('overview')">Overview</button>
+            <button id="tabPhysical"
+                style="flex:1; padding:14px 16px; border:none; background:none; color:var(--text-muted); font-weight:600; border-bottom:2px solid transparent; cursor:pointer;"
+                onclick="switchDateViewTab('physical')">Physical</button>
+            <button id="tabProfession"
+                style="flex:1; padding:14px 16px; border:none; background:none; color:var(--text-muted); font-weight:600; border-bottom:2px solid transparent; cursor:pointer;"
+                onclick="switchDateViewTab('profession')">Profession</button>
+        </div>
+
+        <!-- Content -->
+        <div style="padding:24px;">
+            <!-- Overview Tab -->
+            <div id="dateViewOverview" style="display:block;">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;">
+                    <div
+                        style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.2); border-radius:8px; padding:16px;">
+                        <div
+                            style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600; margin-bottom:8px;">
+                            Physical Activity</div>
+                        <div style="display:flex; align-items:baseline; gap:8px;">
+                            <div style="font-size:2rem; font-weight:900; color:var(--success-color);"
+                                id="ovPhysicalPct">0%</div>
+                            <div style="color:var(--text-muted); font-size:0.85rem;" id="ovPhysicalTasks">
+                                0/0
+                                tasks</div>
+                        </div>
+                    </div>
+                    <div
+                        style="background:rgba(0,212,255,0.08); border:1px solid rgba(0,212,255,0.2); border-radius:8px; padding:16px;">
+                        <div
+                            style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600; margin-bottom:8px;">
+                            Profession</div>
+                        <div style="display:flex; align-items:baseline; gap:8px;">
+                            <div style="font-size:2rem; font-weight:900; color:var(--primary-color);"
+                                id="ovProfessionPct">0%</div>
+                            <div style="color:var(--text-muted); font-size:0.85rem;" id="ovProfessionTasks">
+                                0/0
+                                tasks</div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    style="background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.2); border-radius:8px; padding:16px; margin-bottom:24px;">
+                    <div
+                        style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600; margin-bottom:8px;">
+                        Combined Score</div>
+                    <div style="font-size:2.5rem; font-weight:900; color:#fbbf24;" id="ovCombinedScore">0%
+                    </div>
+                </div>
+
+                <!-- NEW: Task Log on Overview -->
+                <div>
+                    <h3
+                        style="font-size:0.9rem; font-weight:700; margin-bottom:12px; color:var(--text-muted); text-transform:uppercase; letter-spacing:0.5px;">
+                        Task Log Breakdown</h3>
+                    <div id="ovTaskLog" style="display:flex; flex-direction:column; gap:8px;">
+                        <!-- Populate via JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Physical Tab -->
+            <div id="dateViewPhysical" style="display:none;">
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-size:0.95rem; font-weight:700; margin-bottom:12px;">Physical Tasks</h3>
+                    <ul id="dateViewTasksList" style="list-style:none; display:flex; flex-direction:column; gap:6px;">
+                    </ul>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-size:0.95rem; font-weight:700; margin-bottom:12px;">Physical Goals</h3>
+                    <div id="dateViewGoalsList"></div>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-size:0.95rem; font-weight:700; margin-bottom:12px;">Health Metrics</h3>
+                    <div style="display:grid; grid-template-columns:repeat(4, 1fr); gap:12px; margin-bottom:16px;"
+                        id="dateViewHealthMetrics"></div>
+                </div>
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-size:0.95rem; font-weight:700; margin-bottom:12px;">Nutrition Checklist
+                    </h3>
+                    <div id="dateViewNutritionChecklist"></div>
+                </div>
+            </div>
+
+            <!-- Profession Tab -->
+            <div id="dateViewProfession" style="display:none;">
+                <div style="margin-bottom:20px;">
+                    <h3 style="font-size:0.95rem; font-weight:700; margin-bottom:12px;">Profession Tasks
+                    </h3>
+                    <div id="dateViewProfTasksList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Future Date Task Scheduler Modal (OUTSIDE mainContainer so blur doesn't affect it) -->
+<div id="taskSchedulerModal" class="modal-overlay" style="display:none;">
+    <div
+        style="background:var(--bg-card); border:1px solid rgba(255,255,255,0.08); border-radius:var(--radius-xl); padding:28px; width:90%; max-width:500px; box-shadow:0 20px 60px rgba(0,0,0,0.7);">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
+            <h2 style="margin:0; font-size:1.2rem; font-weight:700;" id="schedulerTitle">Schedule Task</h2>
+            <button onclick="closeTaskScheduler()"
+                style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.5rem; padding:0;">✕</button>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:20px;">
+            <div>
+                <div class="reminder-input-row" style="margin-bottom:12px;">
+                    <input type="text" id="schedulerReminderInput" placeholder="Add a thing to do… (press Enter)"
+                        style="flex:1; margin:0; padding:12px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--text-color);"
+                        onkeydown="if(event.key==='Enter') saveFutureReminder()">
+                    <button class="btn btn-sm" onclick="saveFutureReminder()"
+                        style="background:var(--primary-color); padding:0 16px;">+ Add</button>
+                </div>
+            </div>
+
+            <div id="schedulerGoalsContainer"
+                style="max-height:250px; overflow-y:auto; padding-right:4px; margin-bottom:15px;">
+                <!-- Unified list of goals/reminders will be injected here -->
+            </div>
+
+            <div style="border-top:1px solid rgba(255,255,255,0.05); padding-top:15px;">
+                <label
+                    style="display:block; font-size:0.8rem; color:var(--text-muted); margin-bottom:8px; font-weight:600;">DAY
+                    REMINDER (Memos, appointments etc.)</label>
+                <textarea id="dayNoteInput" placeholder="Enter a keyword or note for this day…"
+                    style="width:100%; height:60px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.1); border-radius:8px; color:var(--text-color); padding:10px; font-size:0.85rem; resize:none;"></textarea>
+            </div>
+
+            <div style="margin-top:10px; border-top:1px solid rgba(255,255,255,0.05); padding-top:15px;">
+                <button class="btn btn-sm" onclick="saveDayNote()"
+                    style="width:100%; background:var(--success-color); margin-bottom:8px;">Save
+                    Note</button>
+                <button class="btn btn-ghost" onclick="closeTaskScheduler()"
+                    style="width:100%; justify-content:center; color:var(--text-muted);">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Row: Things To Do -->
+<div class="reminders-section fade-in">
+    <div class="reminders-card">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+            <div class="section-title" style="margin:0;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    style="vertical-align:middle; margin-right:6px;">
+                    <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+                    <polyline points="14 2 14 8 20 8" />
+                    <line x1="16" y1="13" x2="8" y2="13" />
+                    <line x1="16" y1="17" x2="8" y2="17" />
+                    <polyline points="10 9 9 9 8 9" />
+                </svg>
+                Things To Do
+            </div>
+            <span style="font-size:0.72rem; color:var(--text-muted);">Persistent reminders — not date-bound</span>
+        </div>
+        <div class="reminder-input-row">
+            <input type="text" id="newReminderInput" placeholder="Add a quick reminder… (press Enter)"
+                style="flex:1; margin:0;" onkeydown="if(event.key==='Enter') addReminder()">
+            <button class="btn btn-sm" onclick="addReminder()">+ Add</button>
+        </div>
+        <ul id="reminderList" class="reminder-list">
+            {% for r in reminders %}
+            <li class="reminder-item {{ 'done' if r.is_done else '' }}" data-id="{{ r.id }}">
+                <div class="reminder-check {{ 'checked' if r.is_done else '' }}"
+                    onclick="toggleReminder({{ r.id }}, this)">
+                    {% if r.is_done %}<svg width="9" height="9" viewBox="0 0 10 10" fill="none">
+                        <path d="M1.5 5l2.5 2.5 5-5" stroke="#000" stroke-width="1.8" stroke-linecap="round" />
+                    </svg>{% endif %}
+                </div>
+                <span class="reminder-text {{ 'done-text' if r.is_done else '' }}">{{ r.title }}</span>
+                <button class="reminder-del" onclick="deleteReminder({{ r.id }}, this.closest('li'))"
+                    title="Delete">✕</button>
+            </li>
+            {% else %}
+            <li class="task-empty" id="reminderEmpty">No reminders yet. Add things you need to remember!</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<style>
+    /* ── Quote Banner ── */
+    .quote-banner {
+        display: flex;
+        align-items: flex-start;
+        gap: 16px;
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.05) 0%, rgba(124, 58, 237, 0.05) 100%);
+        border: 1px solid rgba(0, 212, 255, 0.12);
+        border-radius: var(--radius-lg);
+        padding: 20px 24px;
+        margin-bottom: 24px;
+    }
+
+    .quote-icon {
+        font-size: 3rem;
+        line-height: 1;
+        color: var(--primary-color);
+        opacity: 0.35;
+        font-family: Georgia, serif;
+        flex-shrink: 0;
+        margin-top: -6px;
+    }
+
+    .quote-text {
+        font-size: 0.95rem;
+        font-style: italic;
+        color: var(--text-secondary);
+        line-height: 1.7;
+        margin-bottom: 6px;
+    }
+
+    .quote-author {
+        font-size: 0.78rem;
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+
+    /* ── Score Card Grid ── */
+    .score-cards-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 24px;
+    }
+
+    .score-card {
+        background: var(--bg-card);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: var(--radius-lg);
+        padding: 22px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .sc-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .sc-icon {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .sc-icon.physical {
+        background: rgba(16, 185, 129, 0.12);
+        color: var(--success-color);
+    }
+
+    .sc-icon.profession {
+        background: rgba(0, 212, 255, 0.1);
+        color: var(--primary-color);
+    }
+
+    .sc-icon.combined {
+        background: rgba(251, 191, 36, 0.1);
+        color: #fbbf24;
+    }
+
+    .sc-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-color);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .sc-stats {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .sc-stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.83rem;
+        color: var(--text-muted);
+        padding: 5px 10px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 6px;
+    }
+
+    .sc-val {
+        font-weight: 700;
+        color: var(--text-color);
+    }
+
+    .sc-val.success {
+        color: var(--success-color);
+    }
+
+    .sc-val.cyan {
+        color: var(--primary-color);
+    }
+
+    .sc-ring-wrap {
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 90px;
+    }
+
+    .score-ring-svg {
+        position: absolute;
+    }
+
+    .ring-bg {
+        fill: none;
+        stroke: rgba(11, 15, 26, 0.8);
+        stroke-width: 8px;
+    }
+
+    .ring-fill {
+        fill: none;
+        stroke-linecap: round;
+        stroke-width: 8px;
+        stroke-dasharray: 226.2;
+        stroke-dashoffset: 226.2;
+        /* Start hidden */
+        transition: stroke-dashoffset 0.9s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .physical-ring {
+        stroke: var(--accent-color);
+        filter: drop-shadow(0 0 5px rgba(0, 212, 255, 0.6));
+    }
+
+    .profession-ring {
+        stroke: var(--primary-color);
+        filter: drop-shadow(0 0 7px rgba(157, 78, 221, 0.7));
+    }
+
+    .ring-label {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+        height: 100%;
+    }
+
+    .ring-pct {
+        font-size: 1.25rem;
+        font-weight: 900;
+        color: #FFFFFF !important;
+        text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    }
+
+    .ring-pct.amber {
+        color: #fbbf24;
+    }
+
+    /* ── Combined Card ── */
+    .combined-card {
+        background: linear-gradient(135deg, rgba(0, 212, 255, 0.03) 0%, rgba(124, 58, 237, 0.03) 100%);
+    }
+
+    .combined-score-display {
+        text-align: center;
+        padding: 8px 0;
+    }
+
+    .combined-big-pct {
+        font-size: 2.8rem;
+        font-weight: 900;
+        letter-spacing: -2px;
+        line-height: 1;
+    }
+
+    .combined-big-pct.success {
+        color: var(--success-color);
+    }
+
+    .combined-big-pct.cyan {
+        color: var(--primary-color);
+    }
+
+    .combined-big-pct.amber {
+        color: #fbbf24;
+    }
+
+    .combined-breakdown {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .breakdown-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+    }
+
+    .breakdown-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .breakdown-dot.physical {
+        background: var(--success-color);
+    }
+
+    .breakdown-dot.profession {
+        background: var(--primary-color);
+    }
+
+    .breakdown-val {
+        margin-left: auto;
+        font-weight: 700;
+        color: var(--text-color);
+    }
+
+    .combined-bar-track {
+        height: 5px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .combined-bar-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--success-color), var(--primary-color));
+        border-radius: 10px;
+        transition: width 1s ease;
+    }
+
+    /* ── Reminders ── */
+    .reminders-section {
+        margin-bottom: 20px;
+    }
+
+    .reminders-card {
+        background: var(--bg-card);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: var(--radius-lg);
+        padding: 22px;
+    }
+
+    .reminder-input-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+    }
+
+    .reminder-list {
+        list-style: none;
+    }
+
+    .reminder-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 9px 12px;
+        border-radius: var(--radius-sm);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        background: rgba(255, 255, 255, 0.015);
+        margin-bottom: 5px;
+        transition: var(--transition);
+    }
+
+    .reminder-item:hover {
+        background: rgba(255, 255, 255, 0.03);
+    }
+
+    .reminder-item.done {
+        opacity: 0.55;
+    }
+
+
+    .reminder-text {
+        flex: 1;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    .reminder-text.done-text {
+        text-decoration: line-through;
+        color: var(--text-muted);
+    }
+
+    .reminder-del {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        cursor: pointer;
+        padding: 2px 5px;
+        border-radius: 4px;
+        opacity: 0;
+        transition: var(--transition);
+        flex-shrink: 0;
+        width: auto;
+    }
+
+    .reminder-item:hover .reminder-del {
+        opacity: 1;
+    }
+
+    /* Modal Overlay */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.55);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 3000;
+        animation: fadeIn 0.25s ease;
+    }
+
+    .main-content-blur {
+        transition: none;
+    }
+
+    @media (max-width: 900px) {
+        .score-cards-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<script>
+    // ── Reminders ──────────────────────────────────────────────────────────────
+    const checkSVG = () => `<svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5 5-5" stroke="#000" stroke-width="1.8" stroke-linecap="round"/></svg>`;
+
+    async function addReminder() {
+        const input = document.getElementById('newReminderInput');
+        const title = input.value.trim();
+        if (!title) return;
+
+        const res = await fetch('/api/reminders/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const list = document.getElementById('reminderList');
+            const empty = document.getElementById('reminderEmpty');
+            if (empty) empty.remove();
+
+            const li = document.createElement('li');
+            li.className = 'reminder-item';
+            li.setAttribute('data-id', data.id);
+            li.innerHTML = `
+            <div class="reminder-check" onclick="toggleReminder(${data.id}, this)"></div>
+            <span class="reminder-text">${title}</span>
+            <button class="reminder-del" onclick="deleteReminder(${data.id}, this.closest('li'))">✕</button>`;
+            list.prepend(li);
+            input.value = '';
+        }
+    }
+
+    async function toggleReminder(id, el) {
+        const li = el.closest('li');
+        const text = li.querySelector('.reminder-text');
+        const isDone = !el.classList.contains('checked');
+        el.classList.toggle('checked', isDone);
+        el.innerHTML = isDone ? checkSVG() : '';
+        li.classList.toggle('done', isDone);
+        text.classList.toggle('done-text', isDone);
+
+        await fetch('/api/reminders/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, done: isDone })
+        });
+    }
+
+    async function deleteReminder(id, li) {
+        if (!li) return;
+        const res = await fetch('/api/reminders/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        if (res.ok) {
+            li.style.opacity = '0';
+            li.style.transform = 'translateX(20px)';
+            li.style.transition = '0.25s ease';
+            setTimeout(() => li.remove(), 250);
+        }
+    }
+
+    // ── Calendar Functions ─────────────────────────────────────────────────────
+    let calendarViewDate = new Date();
+    let activitiesMap = {};
+    let selectedDateStr = null;
+
+    async function initCalendar() {
+        await renderCalendar();
+    }
+
+    async function renderCalendar() {
+        const year = calendarViewDate.getFullYear();
+        const month = calendarViewDate.getMonth() + 1;
+
+        // Update header
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+            'July', 'August', 'September', 'October', 'November', 'December'];
+        document.getElementById('monthYearDisplay').textContent = `${monthNames[month - 1]} ${year}`;
+
+        // Fetch activities for this month
+        const res = await fetch(`/api/calendar/month?year=${year}&month=${month}`);
+        activitiesMap = await res.json();
+
+        // Build calendar grid
+        const grid = document.getElementById('calendarGrid');
+        grid.innerHTML = '';
+
+        // Add day headers
+        const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        dayHeaders.forEach(day => {
+            const header = document.createElement('div');
+            header.style.cssText = 'text-align:center; font-weight:600; font-size:0.75rem; color:var(--text-muted); padding:8px 0; min-height:30px; display:flex; align-items:center; justify-content:center;';
+            header.textContent = day;
+            grid.appendChild(header);
+        });
+
+        // Get first day of month and number of days
+        const firstDay = new Date(year, month - 1, 1).getDay();
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        // Create today's date string using local date (not UTC) to avoid timezone issues
+        const todayYear = today.getFullYear();
+        const todayMonth = today.getMonth() + 1;
+        const todayDate = today.getDate();
+        const todayStr = `${todayYear}-${String(todayMonth).padStart(2, '0')}-${String(todayDate).padStart(2, '0')}`;
+
+        // Add empty cells before first day
+        for (let i = 0; i < firstDay; i++) {
+            const empty = document.createElement('div');
+            grid.appendChild(empty);
+        }
+
+        // Add day cells
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dayDate = new Date(year, month - 1, day);
+            dayDate.setHours(0, 0, 0, 0);
+
+            const cell = document.createElement('div');
+            cell.className = 'calendar-cell';
+            cell.setAttribute('data-date', dateStr);
+
+            const isToday = dateStr === todayStr;
+            const isPast = dayDate < today;
+            const activity = activitiesMap[dateStr];
+
+            let borderColor = 'rgba(255,255,255,0.08)';
+            let bgColor = 'rgba(255,255,255,0.02)';
+            let cursor = 'pointer';
+
+            if (isToday) {
+                bgColor = 'rgba(0, 212, 255, 0.1)';
+                borderColor = 'rgba(0, 212, 255, 0.3)';
+            } else if (isPast) {
+                bgColor = 'rgba(255,255,255,0.01)';
+                opacity = '0.5';
+                cursor = 'default';
+            } else {
+                cursor = 'pointer';
+            }
+
+            cell.style.cssText = `padding:10px; border:1px solid ${borderColor}; border-radius:8px; text-align:center; position:relative; transition:all 0.2s; min-height:65px; display:flex; flex-direction:column; align-items:center; justify-content:center; background:${bgColor}; cursor:${cursor};`;
+
+            let html = `<div style="font-weight:600; font-size:0.95rem;">${day}`;
+            if (isToday) html += ` <span style="font-size:0.6rem; color:var(--primary-color);">●</span>`;
+            html += `</div>`;
+
+            if (activity) {
+                const pct = activity.overall_score ?? 0;
+                const color = pct >= 75 ? '#10b981' : pct >= 40 ? '#00d4ff' : '#f59e0b';
+                if (isPast || isToday) {
+                    html += `<div style="font-size:0.75rem; margin-top:4px; color:${color}; font-weight:700;">${pct}%</div>`;
+                }
+
+                const note = activity.day_note || activity.keyword || "";
+                if (note) {
+                    html += `<div style="font-size:0.65rem; color:var(--text-muted); margin-top:2px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; border-top:1px solid rgba(255,255,255,0.05); padding-top:2px;">${note}</div>`;
+                }
+            } else {
+                // No activity data for this date
+                let dots = '';
+
+                if (isToday) {
+                    html += `<div style="font-size:0.65rem; color:var(--primary-color); margin-top:4px; font-weight:600;">Today</div>`;
+                }
+                // Future dots (goals/reminders scheduled)
+                const act = activitiesMap[dateStr];
+                if (act?.has_goals) dots += `<span style="color:#10b981; margin:0 2px;">●</span>`;
+                if (act?.has_reminders) dots += `<span style="color:#00d4ff; margin:0 2px;">●</span>`;
+                if (dots && !isToday) {
+                    html += `<div style="font-size:0.6rem; margin-top:4px;">${dots}</div>`;
+                }
+            }
+
+            cell.innerHTML = html;
+            cell.onclick = () => {
+                // Remove previous selection highlight
+                document.querySelectorAll('.calendar-cell.selected').forEach(c => {
+                    c.classList.remove('selected');
+                });
+                // Add highlight to clicked cell
+                cell.classList.add('selected');
+                showDateInfo(dateStr);
+            };
+            grid.appendChild(cell);
+        }
+    }
+
+    async function showDateInfo(dateStr) {
+        selectedDateStr = dateStr;
+        res = await fetch(`/api/calendar/day?date=${dateStr}`);
+        const data = await res.json();
+
+        const dateObj = new Date(dateStr + 'T00:00:00');
+        const options = { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' };
+        const dateText = dateObj.toLocaleDateString('en-US', options);
+
+        // Create today's date string using local date for proper comparison
+        const today = new Date();
+        const todayYear = today.getFullYear();
+        const todayMonth = today.getMonth() + 1;
+        const todayDate = today.getDate();
+        const todayStr = `${todayYear}-${String(todayMonth).padStart(2, '0')}-${String(todayDate).padStart(2, '0')}`;
+
+        let status = '';
+        let dateType = 'today';
+        if (dateStr < todayStr) {
+            status = 'PAST (Read-only)';
+            dateType = 'past';
+            document.getElementById('selectedDateInfo').style.display = 'none';
+            // Open date view modal for past dates
+            await openDateViewModal(dateStr, dateText);
+            return;
+        } else if (dateStr === todayStr) {
+            status = 'TODAY';
+            dateType = 'today';
+            document.getElementById('selectedDateInfo').style.display = 'block';
+        } else {
+            status = 'FUTURE (Add Goals)';
+            dateType = 'future';
+            document.getElementById('selectedDateInfo').style.display = 'none';
+            // Open task scheduler for future dates
+            openTaskScheduler(dateStr, dateText);
+            return;
+        }
+
+        document.getElementById('selectedDateText').textContent = dateText;
+        document.getElementById('dateStatus').textContent = status;
+
+        let statsHtml = '';
+        if (data.activity) {
+            statsHtml += `<div><span style="color:var(--text-muted);">Completion:</span> <strong style="color:${data.activity.physical_completion_pct >= 75 ? '#10b981' : '#f59e0b'};">${data.activity.physical_completion_pct}%</strong></div>`;
+            statsHtml += `<div><span style="color:var(--text-muted);">Points:</span> <strong style="color:#00d4ff;">${data.activity.total_points || 0}</strong></div>`;
+        } else {
+            statsHtml = '<span style="color:var(--text-muted); font-size:0.8rem;">No activities recorded</span>';
+        }
+        document.getElementById('dateStats').innerHTML = statsHtml;
+
+        // Show action buttons based on date type
+        let actionsHtml = '';
+        if (dateType === 'today') {
+            actionsHtml = `<span style="color:var(--primary-color); font-size:0.8rem;">✓ Visit Physical page to manage today's tasks</span>`;
+        }
+        document.getElementById('dateActions').innerHTML = actionsHtml;
+
+        let tasksHtml = '';
+        if ((data.tasks && data.tasks.length > 0) || (data.reminders && data.reminders.length > 0)) {
+            if (data.tasks.length > 0) {
+                tasksHtml += '<strong style="display:block; margin-bottom:8px; font-size:0.9rem; color:var(--success-color);">Physical Tasks:</strong>';
+                data.tasks.forEach(t => {
+                    const color = t.is_completed ? 'var(--success-color)' : 'var(--text-muted)';
+                    const icon = t.is_completed ? '✓' : '○';
+                    tasksHtml += `<div style="padding:6px 0; font-size:0.8rem; color:${color}; margin-left:10px;">
+                        <span style="margin-right:6px;">${icon}</span>${t.title}</div>`;
+                });
+            }
+            if (data.reminders && data.reminders.length > 0) {
+                tasksHtml += '<strong style="display:block; margin:12px 0 8px; font-size:0.9rem; color:var(--primary-color);">Scheduled Reminders:</strong>';
+                data.reminders.forEach(r => {
+                    const color = r.is_done ? 'var(--primary-color)' : 'var(--text-muted)';
+                    const icon = r.is_done ? '✓' : '○';
+                    tasksHtml += `<div style="padding:6px 0; font-size:0.8rem; color:${color}; margin-left:10px;">
+                        <span style="margin-right:6px;">${icon}</span>${r.title}</div>`;
+                });
+            }
+        } else {
+            tasksHtml = '<span style="color:var(--text-muted); font-size:0.8rem;">No tasks or reminders scheduled</span>';
+        }
+        document.getElementById('dateTasksList').innerHTML = tasksHtml;
+        document.getElementById('selectedDateInfo').style.display = 'block';
+    }
+
+    async function openTaskScheduler(dateStr, dateText) {
+        try {
+            selectedDateStr = dateStr;
+
+            // UI Isolation: Hide the 'Today's Focus' sidebar if we are planning for another day
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const sidebar = document.getElementById('selectedDateInfo');
+            if (sidebar && dateStr !== todayStr) {
+                sidebar.style.display = 'none';
+            }
+
+            // Apply background blur to main dashboard areas
+            const cards = document.querySelector('.score-cards-grid');
+            const calGrid = document.querySelector('#calendarGrid');
+            const pageHeader = document.querySelector('.page-header');
+            const quoteBanner = document.querySelector('.quote-banner');
+
+            if (cards) cards.classList.add('blurred');
+            if (calGrid) calGrid.classList.add('blurred');
+            if (pageHeader) pageHeader.classList.add('blurred');
+            if (quoteBanner) quoteBanner.classList.add('blurred');
+
+            const input = document.getElementById('schedulerReminderInput');
+            if (input) {
+                input.value = '';
+                input.focus();
+            }
+
+            // Clear container before loading to prevent 'inheritance'
+            const container = document.getElementById('schedulerGoalsContainer');
+            if (container) container.innerHTML = '<div style="text-align:center; padding:20px;"><div class="spinner-small"></div></div>';
+
+            // Load existing goals and reminders for this date
+            const res = await fetch(`/api/date-view?date=${dateStr}`);
+            if (!res.ok) throw new Error('Failed to fetch data');
+            const data = await res.json();
+
+            // Populate day note
+            const noteInput = document.getElementById('dayNoteInput');
+            if (noteInput) {
+                noteInput.value = data.overview.day_note || '';
+                // Reset save button if note is changed
+                const saveBtn = document.querySelector('button[onclick="saveDayNote()"]');
+                if (saveBtn) saveBtn.textContent = 'Save';
+                // Add oninput listener to reset button text
+                noteInput.oninput = () => {
+                    if (saveBtn) saveBtn.textContent = 'Save';
+                    saveBtn.style.background = 'var(--success-color)';
+                };
+            }
+
+            // Accurate percentage calculation for the title
+            const pct = data.overview.physical_completion_pct || 0;
+            document.getElementById('schedulerTitle').innerHTML = `${dateStr === todayStr ? 'Today\'s' : dateText} Focus <span style="color:var(--primary-color); font-size:0.9rem; margin-left:10px;">(${pct}%)</span>`;
+
+            let itemsHtml = '';
+            // Unify both goals and reminders into a single list
+            const allItems = [
+                ...(data.physical.goals || []).map(g => ({ id: g.id, title: g.goal_title, type: 'goal', is_done: g.completed_count > 0 })),
+                ...(data.physical.reminders || []).map(r => ({ id: r.id, title: r.title, type: 'reminder', is_done: r.is_done }))
+            ];
+
+            if (allItems.length > 0) {
+                itemsHtml = '<div style="margin-bottom:10px;">';
+                allItems.forEach(item => {
+                    const isGoal = item.type === 'goal';
+                    const deleteFn = isGoal ? `deleteGoal(${item.id}, '${dateStr}')` : `deleteReminderDirect(${item.id}, '${dateStr}')`;
+                    const typeColor = isGoal ? '#10b981' : '#00d4ff';
+                    const typeLabel = isGoal ? 'Goal' : 'Reminder';
+                    const typeIcon = isGoal ? '🎯' : '📌';
+
+                    itemsHtml += `
+                        <div class="reminder-item" style="margin-bottom:8px; background:rgba(255,255,255,0.03); padding:10px 14px; border-radius:10px; border:1px solid rgba(255,255,255,0.05);">
+                            <div style="display:flex; align-items:center; gap:12px; width:100%;">
+                                <span style="font-size:1rem; flex-shrink:0;">${typeIcon}</span>
+                                <div style="flex:1;">
+                                    <span style="font-size:0.9rem; color:var(--text-color);">${item.title}</span>
+                                    <span style="font-size:0.7rem; color:${typeColor}; margin-left:8px; font-weight:600;">${typeLabel}</span>
+                                </div>
+                                <button onclick="event.stopPropagation(); if(confirm('Delete this item?')) ${deleteFn}" style="background:none; border:none; color:#ef4444; cursor:pointer; font-size:1.1rem; padding:4px; opacity:0.6;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.6" title="Delete">✕</button>
+                            </div>
+                        </div>`;
+                });
+                itemsHtml += '</div>';
+            } else {
+                itemsHtml = '<div style="text-align:center; padding:30px 0; color:var(--text-muted); font-size:0.85rem;">No things scheduled for this day yet.</div>';
+            }
+
+            if (container) container.innerHTML = itemsHtml;
+            document.getElementById('taskSchedulerModal').style.display = 'flex';
+        } catch (e) {
+            console.error('Scheduler error:', e);
+            alert('Failed to open scheduler. Refreshing...');
+            location.reload();
+        }
+    }
+
+    async function deleteGoal(goalId, dateStr) {
+        const res = await fetch('/api/physical-goals/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: goalId })
+        });
+
+        if (res.ok) {
+            const dateText = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            await openTaskScheduler(dateStr, dateText);
+            renderCalendar();
+        }
+    }
+
+    function closeTaskScheduler() {
+        document.getElementById('taskSchedulerModal').style.display = 'none';
+        const main = document.getElementById('mainContainer');
+    }
+
+    async function saveDayNote() {
+        const note = document.getElementById('dayNoteInput').value;
+        const res = await fetch('/api/activity/note/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date: selectedDateStr, note: note })
+        });
+        if (res.ok) {
+            renderCalendar();
+            // Success feedback
+            const btn = document.querySelector('button[onclick="saveDayNote()"]');
+            if (btn) {
+                btn.textContent = 'Saved!';
+                btn.style.background = 'var(--primary-color)';
+            }
+        }
+    }
+
+    async function saveFutureReminder() {
+        const input = document.getElementById('schedulerReminderInput');
+        const title = input.value.trim();
+        if (!title) return;
+
+        const res = await fetch('/api/reminders/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: title, date: selectedDateStr })
+        });
+
+        if (res.ok) {
+            input.value = '';
+            const dateText = new Date(selectedDateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            await openTaskScheduler(selectedDateStr, dateText);
+            renderCalendar();
+        }
+    }
+
+    async function toggleReminderDirect(id, done, dateStr) {
+        const res = await fetch('/api/reminders/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id, done: done })
+        });
+        if (res.ok) {
+            const dateText = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            await openTaskScheduler(dateStr, dateText);
+            renderCalendar();
+        }
+    }
+
+    async function toggleGoalDirect(id, completed, dateStr) {
+        const res = await fetch('/api/physical-goals/toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id, completed: completed })
+        });
+        if (res.ok) {
+            const dateText = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            await openTaskScheduler(dateStr, dateText);
+            renderCalendar();
+        }
+    }
+
+    async function deleteReminderDirect(id, dateStr) {
+        const res = await fetch('/api/reminders/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: id })
+        });
+        if (res.ok) {
+            const dateText = new Date(dateStr + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+            await openTaskScheduler(dateStr, dateText);
+            renderCalendar();
+        }
+    }
+
+    document.getElementById('taskSchedulerModal')?.addEventListener('click', function (e) {
+        if (e.target === this) closeTaskScheduler();
+    });
+
+    async function openDateViewModal(dateStr, dateText) {
+        try {
+            // UI Isolation: Hide the 'Today's Focus' sidebar if viewing another date
+            const today = new Date();
+            const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const sidebar = document.getElementById('selectedDateInfo');
+            if (sidebar && dateStr !== todayStr) {
+                sidebar.style.display = 'none';
+            }
+
+            // Apply background blur to main dashboard areas
+            const cards = document.querySelector('.score-cards-grid');
+            const calGrid = document.querySelector('#calendarGrid');
+            const pageHeader = document.querySelector('.page-header');
+            const quoteBanner = document.querySelector('.quote-banner');
+
+            if (cards) cards.classList.add('blurred');
+            if (calGrid) calGrid.classList.add('blurred');
+            if (pageHeader) pageHeader.classList.add('blurred');
+            if (quoteBanner) quoteBanner.classList.add('blurred');
+
+            document.getElementById('modalDateHeader').textContent = dateText;
+
+            // Clear containers to prevent inheritance
+            document.getElementById('ovPhysicalPct').textContent = '...%';
+            document.getElementById('ovPhysicalTasks').textContent = '...';
+            document.getElementById('ovProfessionPct').textContent = '...%';
+            document.getElementById('ovProfessionTasks').textContent = '...';
+            document.getElementById('ovCombinedScore').textContent = '...%';
+            document.getElementById('dateViewTasksList').innerHTML = '';
+            document.getElementById('dateViewGoalsList').innerHTML = '';
+            document.getElementById('dateViewHealthMetrics').innerHTML = '';
+            document.getElementById('dateViewNutritionChecklist').innerHTML = '';
+
+            const res = await fetch(`/api/date-view?date=${dateStr}`);
+            if (!res.ok) throw new Error('API request failed');
+            const data = await res.json();
+
+            // Populate overview tab
+            const physPct = data.overview.physical_completion_pct || 0;
+            const profPct = data.overview.profession_completion_pct || 0;
+            const physDone = data.physical.phys_done || 0;
+            const physTotal = data.physical.phys_total || 0;
+            const profDone = data.profession.tasks_done || 0;
+            const profTotal = data.profession.tasks_total || 0;
+
+            document.getElementById('ovPhysicalPct').textContent = physPct + '%';
+            document.getElementById('ovPhysicalTasks').textContent = `${physDone}/${physTotal} items`;
+            document.getElementById('ovProfessionPct').textContent = profPct + '%';
+            document.getElementById('ovProfessionTasks').textContent = `${profDone}/${profTotal} tasks`;
+            document.getElementById('ovCombinedScore').textContent = (data.combined || 0) + '%';
+
+            // Populate Task Log Breakdown in Overview
+            let logHtml = '';
+            const allTasks = [
+                ...(data.physical.tasks_list || []).map(t => ({ title: t.title, done: t.is_completed, type: 'Task' })),
+                ...(data.physical.reminders || []).map(r => ({ title: r.title, done: r.is_done, type: 'Reminder' })),
+                ...(data.physical.goals || []).map(g => ({ title: g.goal_title, done: g.completed_count >= g.total_count, type: 'Goal' })),
+                ...(data.physical.checklist || []).map(c => ({ title: c.item_label, done: c.is_checked, type: 'Nutrition' })),
+                ...(data.profession.tasks_list || []).map(t => ({ title: t.title, done: t.is_completed, type: 'Profession' }))
+            ];
+
+            if (allTasks.length === 0) {
+                logHtml = '<div style="text-align:center; padding:20px; color:var(--text-muted); font-size:0.85rem; background:rgba(255,255,255,0.02); border-radius:8px;">No tasks recorded for this date.</div>';
+            } else {
+                allTasks.forEach(task => {
+                    const statusIcon = task.done ? '✓' : '○';
+                    const statusColor = task.done ? 'var(--success-color)' : 'var(--text-muted)';
+                    const bg = task.done ? 'rgba(16,185,129,0.04)' : 'rgba(255,255,255,0.02)';
+                    const border = task.done ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)';
+
+                    logHtml += `
+                        <div style="display:flex; align-items:center; gap:12px; padding:10px 14px; background:${bg}; border:1px solid ${border}; border-radius:10px;">
+                            <span style="color:${statusColor}; font-weight:bold; font-size:1.1rem;">${statusIcon}</span>
+                            <div style="flex:1;">
+                                <div style="font-size:0.88rem; color:${task.done ? 'var(--text-muted)' : 'var(--text-color)'}; ${task.done ? 'text-decoration:line-through' : ''}">${task.title}</div>
+                                <div style="font-size:0.65rem; color:var(--text-muted); text-transform:uppercase; margin-top:2px;">${task.type}</div>
+                            </div>
+                        </div>`;
+                });
+            }
+            document.getElementById('ovTaskLog').innerHTML = logHtml;
+
+
+            // Populate physical tab
+            populateDateViewPhysical(data);
+
+            // Populate profession tab
+            populateDateViewProfession(data);
+
+            document.getElementById('dateViewModal').style.display = 'flex';
+        } catch (e) {
+            console.error('Failed to load date view:', e);
+            alert('Failed to load record for ' + dateText + '. It might not have any data yet.');
+            // Don't reload, just ensure modal is closed
+            closeDateViewModal();
+        }
+    }
+
+    function populateDateViewPhysical(data) {
+        // Tasks
+        let tasksHtml = '';
+        if (data.physical.tasks_list.length === 0) {
+            tasksHtml = '<div style="color:var(--text-muted); font-size:0.85rem; text-align:center; padding:20px; border:1px dashed rgba(255,255,255,0.1); border-radius:12px;">No tasks scheduled</div>';
+        } else {
+            tasksHtml = '<div style="display:flex; flex-direction:column; gap:8px;">';
+            data.physical.tasks_list.forEach(t => {
+                const icon = t.is_completed ? '✓' : '○';
+                const color = t.is_completed ? 'var(--success-color)' : 'var(--text-muted)';
+                const bg = t.is_completed ? 'rgba(16,185,129,0.04)' : 'rgba(255,255,255,0.02)';
+                const border = t.is_completed ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)';
+                const strikethrough = t.is_completed ? 'text-decoration:line-through; color:var(--text-muted);' : 'color:var(--text-color);';
+
+                tasksHtml += `
+                    <div style="display:flex; align-items:center; gap:12px; padding:10px 14px; background:${bg}; border:1px solid ${border}; border-radius:10px;">
+                        <span style="color:${color}; font-weight:600; font-size:1.1rem;">${icon}</span>
+                        <div style="font-size:0.9rem; ${strikethrough}">${t.title}</div>
+                    </div>`;
+            });
+            tasksHtml += '</div>';
+        }
+        document.getElementById('dateViewTasksList').innerHTML = tasksHtml;
+
+        // Physical Goals
+        let goalsHtml = '';
+        if (data.physical.goals && data.physical.goals.length > 0) {
+            goalsHtml = data.physical.goals.map(g => {
+                const categoryEmoji = {
+                    'cardio': '🏃',
+                    'strength': '💪',
+                    'flexibility': '🧘',
+                    'medical': '🏥',
+                    'sports': '⚽',
+                    'general': '🎯'
+                };
+                return `<div style="background:rgba(16,185,129,0.08); border:1px solid rgba(16,185,129,0.15); border-radius:6px; padding:12px; margin-bottom:8px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                        <span style="font-size:1.2rem;">${categoryEmoji[g.goal_category] || '🎯'}</span>
+                        <div style="flex:1;">
+                            <div style="font-weight:600; font-size:0.9rem; color:var(--text-color);">${g.goal_title}</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">${g.goal_category}</div>
+                        </div>
+                    </div>
+                    ${g.goal_notes ? `<div style="font-size:0.8rem; color:var(--text-muted); padding-left:0; margin-top:8px;">Notes: ${g.goal_notes}</div>` : ''}
+                </div>`;
+            }).join('');
+        } else {
+            goalsHtml = '<div style="color:var(--text-muted); font-size:0.85rem;">No physical goals scheduled</div>';
+        }
+        document.getElementById('dateViewGoalsList').innerHTML = goalsHtml;
+
+        // Health metrics
+        let metricsHtml = '';
+        if (data.user.height) metricsHtml += `<div style="background:rgba(255,255,255,0.02); border-radius:6px; padding:12px; text-align:center;"><div style="font-size:0.9rem; font-weight:600;">${data.user.height}</div><div style="font-size:0.7rem; color:var(--text-muted);">Height (cm)</div></div>`;
+        if (data.user.weight) metricsHtml += `<div style="background:rgba(255,255,255,0.02); border-radius:6px; padding:12px; text-align:center;"><div style="font-size:0.9rem; font-weight:600;">${data.user.weight}</div><div style="font-size:0.7rem; color:var(--text-muted);">Weight (kg)</div></div>`;
+        if (data.user.bmi) metricsHtml += `<div style="background:rgba(255,255,255,0.02); border-radius:6px; padding:12px; text-align:center;"><div style="font-size:0.9rem; font-weight:600;">${data.user.bmi}</div><div style="font-size:0.7rem; color:var(--text-muted);">BMI</div></div>`;
+        if (data.user.blood_group) metricsHtml += `<div style="background:rgba(255,255,255,0.02); border-radius:6px; padding:12px; text-align:center;"><div style="font-size:0.9rem; font-weight:600;">${data.user.blood_group}</div><div style="font-size:0.7rem; color:var(--text-muted);">Blood Group</div></div>`;
+        document.getElementById('dateViewHealthMetrics').innerHTML = metricsHtml || '<div style="color:var(--text-muted); grid-column:span 4;">No health data</div>';
+
+        // Nutrition checklist
+        let nutritionHtml = '';
+        if (data.physical.checklist.length === 0) {
+            nutritionHtml = '<div style="color:var(--text-muted); font-size:0.85rem;">No nutrition data</div>';
+        } else {
+            const protein = data.physical.checklist.filter(c => c.item_type === 'protein');
+            const fiber = data.physical.checklist.filter(c => c.item_type === 'fiber');
+            const water = data.physical.checklist.filter(c => c.item_type === 'water');
+
+            if (protein.length > 0) {
+                nutritionHtml += '<div style="margin-bottom:16px;"><div style="font-size:0.85rem; font-weight:600; color:var(--accent-color); margin-bottom:8px;">Protein</div>';
+                nutritionHtml += protein.map(c => `<div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:4px; padding-left:16px;"><span style="color:${c.is_checked ? 'var(--success-color)' : 'var(--text-muted)'};">${c.is_checked ? '✓' : '○'}</span> ${c.item_label}</div>`).join('');
+                nutritionHtml += '</div>';
+            }
+            if (fiber.length > 0) {
+                nutritionHtml += '<div style="margin-bottom:16px;"><div style="font-size:0.85rem; font-weight:600; color:var(--success-color); margin-bottom:8px;">Fiber</div>';
+                nutritionHtml += fiber.map(c => `<div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:4px; padding-left:16px;"><span style="color:${c.is_checked ? 'var(--success-color)' : 'var(--text-muted)'};">${c.is_checked ? '✓' : '○'}</span> ${c.item_label}</div>`).join('');
+                nutritionHtml += '</div>';
+            }
+            if (water.length > 0) {
+                nutritionHtml += '<div style="margin-bottom:16px;"><div style="font-size:0.85rem; font-weight:600; color:var(--primary-color); margin-bottom:8px;">Water</div>';
+                nutritionHtml += water.map(c => `<div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:4px; padding-left:16px;"><span style="color:${c.is_checked ? 'var(--success-color)' : 'var(--text-muted)'};">${c.is_checked ? '✓' : '○'}</span> ${c.item_label}</div>`).join('');
+                nutritionHtml += '</div>';
+            }
+        }
+        document.getElementById('dateViewNutritionChecklist').innerHTML = nutritionHtml;
+    }
+
+    function populateDateViewProfession(data) {
+        let profHtml = `<div style="background:rgba(0,212,255,0.06); border:1px solid rgba(0,212,255,0.15); border-radius:12px; padding:16px; margin-bottom:20px;">
+            <div style="font-size:0.8rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin-bottom:12px;">Overall Progress</div>
+            <div style="display:flex; align-items:baseline; gap:8px;">
+                <div style="font-size:2rem; font-weight:900; color:var(--primary-color);">${data.profession.tasks_done}/${data.profession.tasks_total}</div>
+                <div style="color:var(--text-muted); font-size:0.9rem;">tasks completed</div>
+            </div>
+            <div style="height:6px; background:rgba(255,255,255,0.05); border-radius:3px; margin-top:12px; overflow:hidden;">
+                <div style="height:100%; width:${data.profession.percentage}%; background:var(--primary-color); transition: width 0.6s ease;"></div>
+            </div>
+        </div>
+        
+        <div style="font-size:0.9rem; font-weight:700; color:var(--text-color); margin-bottom:12px; display:flex; align-items:center; gap:8px;">
+            💼 Task Log
+        </div>`;
+
+        if (data.profession.tasks_list && data.profession.tasks_list.length > 0) {
+            profHtml += '<div style="display:flex; flex-direction:column; gap:8px;">';
+            data.profession.tasks_list.forEach(item => {
+                const icon = item.is_completed ? '✓' : '○';
+                const color = item.is_completed ? 'var(--success-color)' : 'var(--text-muted)';
+                const bg = item.is_completed ? 'rgba(16,185,129,0.04)' : 'rgba(255,255,255,0.02)';
+                const border = item.is_completed ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)';
+                const strikethrough = item.is_completed ? 'text-decoration:line-through; color:var(--text-muted);' : 'color:var(--text-color);';
+
+                profHtml += `
+                    <div style="display:flex; align-items:center; gap:12px; padding:10px 14px; background:${bg}; border:1px solid ${border}; border-radius:10px;">
+                        <span style="color:${color}; font-weight:600; font-size:1.1rem;">${icon}</span>
+                        <div style="font-size:0.9rem; ${strikethrough}">${item.title}</div>
+                    </div>`;
+            });
+            profHtml += '</div>';
+        } else {
+            profHtml += '<div style="text-align:center; padding:30px; color:var(--text-muted); font-size:0.85rem; background:rgba(255,255,255,0.02); border:1px dashed rgba(255,255,255,0.1); border-radius:12px;">No tasks found in profession notebook.</div>';
+        }
+
+        document.getElementById('dateViewProfTasksList').innerHTML = profHtml;
+    }
+
+    function switchDateViewTab(tab) {
+        ['overview', 'physical', 'profession'].forEach(t => {
+            document.getElementById('dateView' + t.charAt(0).toUpperCase() + t.slice(1)).style.display = t === tab ? 'block' : 'none';
+            document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).style.color = t === tab ? 'var(--primary-color)' : 'var(--text-muted)';
+            document.getElementById('tab' + t.charAt(0).toUpperCase() + t.slice(1)).style.borderBottomColor = t === tab ? 'var(--primary-color)' : 'transparent';
+        });
+    }
+
+    function closeTaskScheduler() {
+        document.getElementById('taskSchedulerModal').style.display = 'none';
+
+        // Remove background blur from main dashboard areas
+        const cards = document.querySelector('.score-cards-grid');
+        const calGrid = document.querySelector('#calendarGrid');
+        const pageHeader = document.querySelector('.page-header');
+        const quoteBanner = document.querySelector('.quote-banner');
+
+        if (cards) cards.classList.remove('blurred');
+        if (calGrid) calGrid.classList.remove('blurred');
+        if (pageHeader) pageHeader.classList.remove('blurred');
+        if (quoteBanner) quoteBanner.classList.remove('blurred');
+
+        // Restore sidebar for today if it was hidden
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        if (selectedDateStr === todayStr) {
+            const sidebar = document.getElementById('selectedDateInfo');
+            if (sidebar) sidebar.style.display = 'block';
+        }
+    }
+
+    function closeDateViewModal() {
+        document.getElementById('dateViewModal').style.display = 'none';
+
+        // Remove background blur from main dashboard areas
+        const cards = document.querySelector('.score-cards-grid');
+        const calGrid = document.querySelector('#calendarGrid');
+        const pageHeader = document.querySelector('.page-header');
+        const quoteBanner = document.querySelector('.quote-banner');
+
+        if (cards) cards.classList.remove('blurred');
+        if (calGrid) calGrid.classList.remove('blurred');
+        if (pageHeader) pageHeader.classList.remove('blurred');
+        if (quoteBanner) quoteBanner.classList.remove('blurred');
+
+        // Restore sidebar for today if it was hidden
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        if (selectedDateStr === todayStr) {
+            const sidebar = document.getElementById('selectedDateInfo');
+            if (sidebar) sidebar.style.display = 'block';
+        }
+    }
+
+    document.getElementById('dateViewModal').addEventListener('click', function (e) {
+        if (e.target === this) closeDateViewModal();
+    });
+
+    function prevMonth() {
+        calendarViewDate.setMonth(calendarViewDate.getMonth() - 1);
+        renderCalendar();
+    }
+
+    function nextMonth() {
+        calendarViewDate.setMonth(calendarViewDate.getMonth() + 1);
+        renderCalendar();
+    }
+
+    // Initialize calendar and pie charts on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        initCalendar();
+
+        // Initialize pie charts with a slight delay to trigger CSS transition
+        setTimeout(() => {
+            document.querySelectorAll('.ring-fill').forEach(ring => {
+                const targetOffset = ring.getAttribute('data-target-offset');
+                if (targetOffset) {
+                    ring.style.strokeDashoffset = targetOffset;
+                }
+            });
+        }, 150);
+    });
+</script>
+{% endblock %}

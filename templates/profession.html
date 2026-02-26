@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header fade-in">
+    <h1>Profession Notebook</h1>
+    <p>Manage and track your technical tasks</p>
+</div>
+
+<!-- Stats Bar -->
+<div class="profession-stats-bar fade-in">
+    <div class="pstat-box">
+        <div class="pstat-val" id="statTotal">{{ today_tasks|length }}</div>
+        <div class="pstat-lbl">Today's Tasks</div>
+    </div>
+    <div class="pstat-sep"></div>
+    <div class="pstat-box">
+        <div class="pstat-val cyan" id="statDone">{{ today_tasks|selectattr('is_completed')|list|length }}</div>
+        <div class="pstat-lbl">Completed Today</div>
+    </div>
+    <div class="pstat-sep"></div>
+    <div class="pstat-box">
+        <div class="pstat-val amber" id="statPending">{{ today_tasks|rejectattr('is_completed')|list|length }}</div>
+        <div class="pstat-lbl">Pending Today</div>
+    </div>
+    <div class="pstat-sep"></div>
+    <div class="pstat-box">
+        <div class="pstat-val success" id="statPct">
+            {% if today_tasks|length > 0 %}
+            {{ ((today_tasks|selectattr('is_completed')|list|length) / (today_tasks|length) * 100)|round|int }}%
+            {% else %}0%{% endif %}
+        </div>
+        <div class="pstat-lbl">Today's Rate</div>
+    </div>
+    <!-- Progress bar -->
+    <div class="pstat-progress-wrap">
+        <div class="pstat-progress-track">
+            <div class="pstat-progress-fill" id="statBar" style="width:
+                {% if today_tasks|length > 0 %}{{ ((today_tasks|selectattr('is_completed')|list|length) / (today_tasks|length) * 100)|int }}%
+                {% else %}0%{% endif %};">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Past Pending Section -->
+{% if past_pending %}
+<div class="notebook-col fade-in" style="margin-bottom: 20px; border-color: rgba(251,191,36,0.3);">
+    <div class="notebook-header-row">
+        <div class="section-title" style="margin:0;">
+            <span class="nb-dot pending-dot"></span> Pending works on previous day
+            <span class="nb-count" style="background:rgba(251,191,36,0.1); color:#fbbf24;">{{ past_pending|length
+                }}</span>
+        </div>
+    </div>
+    <ul class="prof-task-list" id="profPastPendingList">
+        {% for pt in past_pending %}
+        <li class="prof-task-item" data-id="{{ pt.id }}">
+            <div class="ptask-check" onclick="toggleProfTask({{ pt.id }}, this)"></div>
+            <span class="ptask-text" contenteditable="true" onblur="editProfTask({{ pt.id }}, this)"
+                onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}">{{ pt.title }} <small
+                    style="color:var(--text-muted); font-size:0.75rem;">({{ pt.task_date }})</small></span>
+            <button class="ptask-del" onclick="deleteProfTask({{ pt.id }}, this.closest('li'))"
+                title="Delete task">✕</button>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- Main Notebook -->
+<div class="notebook-main-grid fade-in">
+
+    <!-- Left: Add + To-Do -->
+    <div class="notebook-col">
+        <div class="notebook-header-row">
+            <div class="section-title" style="margin:0;">
+                <span class="nb-dot pending-dot"></span> To-Do
+                <span class="nb-count" id="todoBadge">{{ prof_tasks|rejectattr('is_completed')|list|length }}</span>
+            </div>
+        </div>
+
+        <!-- Add Task -->
+        <div class="task-input-row" style="margin-bottom:14px;">
+            <input type="text" id="newProfTaskInput" placeholder="Describe your technical task…"
+                style="flex:1; margin:0;" onkeydown="if(event.key==='Enter'){event.preventDefault(); addProfTask();}">
+            <button class="btn btn-sm" onclick="addProfTask()">+ Add</button>
+        </div>
+
+        <!-- To-Do List -->
+        <ul class="prof-task-list" id="profTodoList">
+            {% set todo_tasks = today_tasks | rejectattr('is_completed') | list %}
+            {% for pt in todo_tasks %}
+            <li class="prof-task-item" data-id="{{ pt.id }}">
+                <div class="ptask-check" onclick="toggleProfTask({{ pt.id }}, this)"></div>
+                <span class="ptask-text" contenteditable="true" onblur="editProfTask({{ pt.id }}, this)"
+                    onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}">{{ pt.title }}</span>
+                <button class="ptask-del" onclick="deleteProfTask({{ pt.id }}, this.closest('li'))"
+                    title="Delete task">✕</button>
+            </li>
+            {% else %}
+            <li class="task-empty" id="todoEmptyMsg">Nothing in the queue. Add a technical task above!</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- Right: Completed -->
+    <div class="notebook-col">
+        <div class="notebook-header-row">
+            <div class="section-title" style="margin:0;">
+                <span class="nb-dot done-dot"></span> Completed
+                <span class="nb-count nb-count-done" id="doneBadge">{{ prof_tasks|selectattr('is_completed')|list|length
+                    }}</span>
+            </div>
+        </div>
+        <ul class="prof-task-list" id="profDoneList" style="margin-top: 57px;">
+            {% set done_tasks = today_tasks | selectattr('is_completed') | list %}
+            {% for pt in done_tasks %}
+            <li class="prof-task-item done" data-id="{{ pt.id }}">
+                <div class="ptask-check checked" onclick="toggleProfTask({{ pt.id }}, this)">
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                        <path d="M1.5 5l2.5 2.5 5-5" stroke="#000" stroke-width="1.5" stroke-linecap="round" />
+                    </svg>
+                </div>
+                <span class="ptask-text done-text" contenteditable="false">{{ pt.title }}</span>
+                <button class="ptask-del" onclick="deleteProfTask({{ pt.id }}, this.closest('li'))"
+                    title="Delete task">✕</button>
+            </li>
+            {% else %}
+            <li class="task-empty" id="doneEmptyMsg">Completed tasks appear here. Keep pushing!</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+</div>
+
+<style>
+    /* Stats Bar */
+    .profession-stats-bar {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        background: var(--bg-card);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: var(--radius-lg);
+        padding: 16px 24px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .pstat-box {
+        text-align: center;
+    }
+
+    .pstat-val {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: var(--text-color);
+        line-height: 1;
+        margin-bottom: 4px;
+    }
+
+    .pstat-val.cyan {
+        color: var(--primary-color);
+    }
+
+    .pstat-val.amber {
+        color: #fbbf24;
+    }
+
+    .pstat-val.success {
+        color: var(--success-color);
+    }
+
+    .pstat-lbl {
+        font-size: 0.68rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .pstat-sep {
+        width: 1px;
+        height: 40px;
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .pstat-progress-wrap {
+        flex: 1;
+        min-width: 120px;
+    }
+
+    .pstat-progress-track {
+        height: 5px;
+        background: rgba(255, 255, 255, 0.06);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .pstat-progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--primary-color), var(--success-color));
+        border-radius: 10px;
+        transition: width 0.8s ease;
+    }
+
+    /* Notebook grid */
+    .notebook-main-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .notebook-col {
+        background: var(--bg-card);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: var(--radius-lg);
+        padding: 20px;
+    }
+
+    .notebook-header-row {
+        margin-bottom: 14px;
+    }
+
+    .nb-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        margin-right: 4px;
+        vertical-align: middle;
+        flex-shrink: 0;
+    }
+
+    .pending-dot {
+        background: #fbbf24;
+    }
+
+    .done-dot {
+        background: var(--success-color);
+    }
+
+    .nb-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 5px;
+        background: rgba(0, 212, 255, 0.1);
+        color: var(--primary-color);
+        border-radius: 10px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        margin-left: 6px;
+    }
+
+    .nb-count-done {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success-color);
+    }
+
+    /* Task items */
+    .prof-task-list {
+        list-style: none;
+        max-height: 55vh;
+        overflow-y: auto;
+        padding-right: 2px;
+    }
+
+    .prof-task-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        padding: 9px 12px;
+        border-radius: var(--radius-sm);
+        border: 1px solid rgba(255, 255, 255, 0.04);
+        background: rgba(255, 255, 255, 0.015);
+        margin-bottom: 5px;
+        transition: var(--transition);
+    }
+
+    .prof-task-item:hover {
+        background: rgba(255, 255, 255, 0.03);
+        border-color: rgba(255, 255, 255, 0.08);
+    }
+
+
+    .ptask-text {
+        flex: 1;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        border: none;
+        background: transparent;
+        outline: none;
+        cursor: text;
+        line-height: 1.4;
+        padding: 2px 4px;
+        border-radius: 4px;
+        transition: background 0.15s;
+        min-width: 0;
+    }
+
+    .ptask-text:focus {
+        background: rgba(0, 212, 255, 0.05);
+        color: var(--text-color);
+        box-shadow: 0 0 0 1px rgba(0, 212, 255, 0.2);
+    }
+
+    .ptask-text.done-text {
+        text-decoration: line-through;
+        color: var(--text-muted);
+        cursor: default;
+    }
+
+    .ptask-del {
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        cursor: pointer;
+        padding: 2px 5px;
+        border-radius: 4px;
+        opacity: 0;
+        transition: var(--transition);
+        flex-shrink: 0;
+        width: auto;
+    }
+
+    .prof-task-item:hover .ptask-del {
+        opacity: 1;
+    }
+
+    .ptask-del:hover {
+        background: rgba(239, 68, 68, 0.15);
+        color: #ef4444;
+    }
+</style>
+
+<script>
+    const checkSVG = () => `<svg width="10" height="10" viewBox="0 0 10 10" fill="none"><path d="M1.5 5l2.5 2.5 5-5" stroke="#000" stroke-width="1.5" stroke-linecap="round"/></svg>`;
+
+    function updateProfStats() {
+        const todoCount = document.querySelectorAll('#profTodoList .prof-task-item').length;
+        const doneCount = document.querySelectorAll('#profDoneList .prof-task-item').length;
+        const total = todoCount + doneCount;
+        const pct = total > 0 ? Math.round(doneCount / total * 100) : 0;
+
+        const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+        setText('statTotal', total);
+        setText('statDone', doneCount);
+        setText('statPending', todoCount);
+        setText('statPct', pct + '%');
+        setText('todoBadge', todoCount);
+        setText('doneBadge', doneCount);
+
+        const bar = document.getElementById('statBar');
+        if (bar) bar.style.width = pct + '%';
+    }
+
+    async function addProfTask() {
+        const input = document.getElementById('newProfTaskInput');
+        const title = input.value.trim();
+        if (!title) return;
+        const res = await fetch('/api/profession/tasks/add', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            const todoList = document.getElementById('profTodoList');
+            const empty = document.getElementById('todoEmptyMsg');
+            if (empty) empty.remove();
+            const li = document.createElement('li');
+            li.className = 'prof-task-item'; li.setAttribute('data-id', data.id);
+            li.innerHTML = `
+            <div class="ptask-check" onclick="toggleProfTask(${data.id}, this)"></div>
+            <span class="ptask-text" contenteditable="true"
+                  onblur="editProfTask(${data.id}, this)"
+                  onkeydown="if(event.key==='Enter'){event.preventDefault(); this.blur();}">${title}</span>
+            <button class="ptask-del" onclick="deleteProfTask(${data.id}, this.closest('li'))">✕</button>`;
+            todoList.prepend(li);
+            input.value = '';
+            updateProfStats();
+        }
+    }
+
+    async function toggleProfTask(id, checkEl) {
+        const li = checkEl.closest('.prof-task-item');
+        const isDone = !checkEl.classList.contains('checked');
+        const textEl = li.querySelector('.ptask-text');
+        const res = await fetch('/api/profession/tasks/toggle', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, completed: isDone })
+        });
+        if (!res.ok) return;
+
+        if (isDone) {
+            checkEl.classList.add('checked');
+            checkEl.innerHTML = checkSVG();
+            li.classList.add('done');
+            if (textEl) { textEl.classList.add('done-text'); textEl.contentEditable = 'false'; }
+            const doneList = document.getElementById('profDoneList');
+            const doneEmpty = document.getElementById('doneEmptyMsg');
+            if (doneEmpty) doneEmpty.remove();
+            doneList.prepend(li);
+            const todoList = document.getElementById('profTodoList');
+            if (!todoList.querySelector('.prof-task-item')) {
+                const empty = document.createElement('li');
+                empty.id = 'todoEmptyMsg'; empty.className = 'task-empty';
+                empty.textContent = 'Nothing in the queue. Add a technical task above!';
+                todoList.appendChild(empty);
+            }
+        } else {
+            checkEl.classList.remove('checked'); checkEl.innerHTML = '';
+            li.classList.remove('done');
+            if (textEl) { textEl.classList.remove('done-text'); textEl.contentEditable = 'true'; }
+            const todoList = document.getElementById('profTodoList');
+            const todoEmpty = document.getElementById('todoEmptyMsg');
+            if (todoEmpty) todoEmpty.remove();
+            todoList.prepend(li);
+            const doneList = document.getElementById('profDoneList');
+            if (!doneList.querySelector('.prof-task-item')) {
+                const empty = document.createElement('li');
+                empty.id = 'doneEmptyMsg'; empty.className = 'task-empty';
+                empty.textContent = 'Completed tasks appear here. Keep pushing!';
+                doneList.appendChild(empty);
+            }
+        }
+        updateProfStats();
+    }
+
+    async function editProfTask(id, el) {
+        const title = el.textContent.trim();
+        if (!title) return;
+        await fetch('/api/profession/tasks/edit', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, title })
+        });
+    }
+
+    async function deleteProfTask(id, li) {
+        if (!li) return;
+        const res = await fetch('/api/profession/tasks/delete', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id })
+        });
+        if (res.ok) {
+            li.style.opacity = '0'; li.style.transform = 'translateX(20px)';
+            li.style.transition = 'all 0.25s ease';
+            setTimeout(() => { li.remove(); updateProfStats(); }, 250);
+        }
+    }
+</script>
+{% endblock %}
